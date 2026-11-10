@@ -1,14 +1,14 @@
 /*
  * ====================================================================
- *  QUAN LY PHONG TRA TU SA - Lap trinh C/C++ co ban (Sinh vien nam nhat)
+ *  QUẢN LÝ PHÒNG TRÀ TỬ SA - Lập trình C/C++ cơ bản (Sinh viên năm nhất)
  * --------------------------------------------------------------------
- *  Kien thuc su dung:
- *   - Cau truc struct TeaPot + mang tinh 1 chieu arr[100] + bien dem n.
- *   - Chuoi ky tu C char[] voi <string.h>: strcpy, strcmp, strstr, strlen.
- *   - Xuat bang can cot bang printf("%-8d ...") cua <stdio.h>.
- *   - Nhap du lieu an toan bang cin / cin.getline + cin.ignore.
- *   - Truyen tham chieu (int &n, double &doanhThu) cua C++ co ban.
- *   - Doc / Ghi file nhi phan bang FILE*, fopen, fread, fwrite.
+ *  Kiến thức sử dụng:
+ *   - Cấu trúc struct TeaPot + mảng tĩnh 1 chiều arr[100] + biến đếm n.
+ *   - Chuỗi ký tự C char[] với <string.h>: strcpy, strcmp, strstr, strlen.
+ *   - Xuất bảng Tiếng Việt UTF-8 căn cột chuẩn bằng printf (<stdio.h>).
+ *   - Nhập dữ liệu an toàn bằng cin / cin.getline + cin.ignore.
+ *   - Truyền tham chiếu (int &n, double &doanhThu) của C++ cơ bản.
+ *   - Đọc / Ghi file nhị phân bằng FILE*, fopen, fread, fwrite.
  * ====================================================================
  */
 
@@ -16,39 +16,42 @@
 #include <string.h>   // strcpy, strcmp, strstr, strlen
 #include <stdlib.h>   // exit
 #include <iostream>   // cin, cin.getline, cin.ignore
+#ifdef _WIN32
+#include <windows.h>  // SetConsoleOutputCP, SetConsoleCP (Hiển thị Tiếng Việt UTF-8)
+#endif
 using namespace std;
 
-#define MAX 100              // So am toi da trong phong tra
-#define DO_RONG 94           // Do rong duong ke bang
-#define MUC_BAO_TRI 10       // Cu 10 lan dung thi khi tra am se chuyen sang Bao tri
-#define TEN_FILE "phongtra.dat"
+#define MAX 100                      // Số ấm tối đa trong phòng trà
+#define DO_RONG 78                   // Độ rộng bảng vừa khít khung Terminal VS Code
+#define MUC_BAO_TRI 10               // Cứ 10 lần dùng thì khi trả ấm chuyển sang Bảo trì
+#define TEN_FILE "phongtra_tusa.dat" // File lưu dữ liệu nhị phân
 
-// Ba trang thai hop le cua mot am tra
-#define TT_SAN_SANG  "San sang"
-#define TT_DANG_DUNG "Dang dung"
-#define TT_BAO_TRI   "Bao tri"
+// Ba trạng thái hợp lệ của một ấm trà
+#define TT_SAN_SANG  "Sẵn sàng"
+#define TT_DANG_DUNG "Đang dùng"
+#define TT_BAO_TRI   "Bảo trì"
 
 struct TeaPot {
-    int id;                 // Ma am (1001, 1002...)
-    char name[30];          // Ten dang am (Tay Thi, Thach Bieu...)
-    char material[25];      // Chat lieu dat (Tu Ne, Chu Ne, Doan Ne...)
-    int capacity;           // Dung tich (ml)
-    double price;           // Gia dich vu (VND)
-    char status[20];        // Trang thai ("San sang", "Dang dung", "Bao tri")
-    int usageCount;         // So lan da su dung
+    int id;                 // Mã ấm (1001, 1002...)
+    char name[50];          // Tên dáng ấm (Tây Thi, Thạch Biều...) - tăng size cho UTF-8
+    char material[40];      // Chất liệu đất (Tử Nê, Chu Nê, Đại Hồng Pao...)
+    int capacity;           // Dung tích (ml)
+    double price;           // Giá trị ấm / Giá phục vụ (VNĐ)
+    char status[30];        // Trạng thái ("Sẵn sàng", "Đang dùng", "Bảo trì")
+    int usageCount;         // Số lần đã sử dụng
 };
 
-/* ================= PHAN 1: HAM TIEN ICH NHAP / XUAT ================= */
+/* ================= PHẦN 1: HÀM TIỆN ÍCH NHẬP / XUẤT ================= */
 
-// Het du lieu nhap (Ctrl+Z / Ctrl+D) thi thoat, tranh lap vo han
+// Hết dữ liệu nhập (Ctrl+Z / Ctrl+D) thì thoát, tránh lặp vô hạn
 void kiemTraHetDuLieu() {
     if (cin.eof()) {
-        printf("\nKhong con du lieu nhap. Thoat chuong trinh.\n");
+        printf("\nKhông còn dữ liệu nhập. Thoát chương trình.\n");
         exit(0);
     }
 }
 
-// Nhap 1 so nguyen trong khoang [nho, lon]. Nhap sai thi bat nhap lai.
+// Nhập 1 số nguyên trong khoảng [nho, lon]. Nhập sai thì bắt nhập lại.
 int nhapSoNguyen(const char thongBao[], int nho, int lon) {
     int x;
     while (1) {
@@ -56,23 +59,22 @@ int nhapSoNguyen(const char thongBao[], int nho, int lon) {
         fflush(stdout);
         cin >> x;
         kiemTraHetDuLieu();
-        if (cin.fail()) {                // Nguoi dung go chu thay vi so
-            cin.clear();                 // Xoa co loi cua cin
-            cin.ignore(10000, '\n');     // Bo phan con thua tren dong
-            printf("  >> Loi: ban phai nhap mot SO nguyen!\n");
+        if (cin.fail()) {
+            cin.clear();
+            cin.ignore(10000, '\n');
+            printf("  >> Lỗi: Bạn phải nhập một SỐ nguyên!\n");
             continue;
         }
-        // Xoa ky tu Enter ('\n') con trong bo nho dem de khong troi cin.getline()
         cin.ignore(10000, '\n');
         if (x < nho || x > lon) {
-            printf("  >> Loi: gia tri phai tu %d den %d!\n", nho, lon);
+            printf("  >> Lỗi: Giá trị phải từ %d đến %d!\n", nho, lon);
             continue;
         }
         return x;
     }
 }
 
-// Nhap 1 so thuc (double) trong khoang [nho, lon]
+// Nhập 1 số thực (double) trong khoảng [nho, lon]
 double nhapSoThuc(const char thongBao[], double nho, double lon) {
     double x;
     while (1) {
@@ -83,105 +85,148 @@ double nhapSoThuc(const char thongBao[], double nho, double lon) {
         if (cin.fail()) {
             cin.clear();
             cin.ignore(10000, '\n');
-            printf("  >> Loi: ban phai nhap mot SO!\n");
+            printf("  >> Lỗi: Bạn phải nhập một SỐ!\n");
             continue;
         }
         cin.ignore(10000, '\n');
         if (x < nho || x > lon) {
-            printf("  >> Loi: gia tri phai tu %.0f den %.0f!\n", nho, lon);
+            printf("  >> Lỗi: Giá trị phải từ %.0f đến %.0f!\n", nho, lon);
             continue;
         }
         return x;
     }
 }
 
-// Nhap 1 chuoi co khoang trang (khong de trong, toi da doDai-1 ky tu)
+// Nhập 1 chuỗi có khoảng trắng (không để trống)
 void nhapChuoi(const char thongBao[], char s[], int doDai) {
     while (1) {
         printf("%s", thongBao);
         fflush(stdout);
-        cin.getline(s, doDai);           // Doc ca dong, ke ca dau cach
+        cin.getline(s, doDai);
         kiemTraHetDuLieu();
-        if (cin.fail()) {                // Go qua dai so voi mang -> cin bi loi
+        if (cin.fail()) {
             cin.clear();
             cin.ignore(10000, '\n');
-            printf("  >> Loi: chuoi qua dai (toi da %d ky tu)!\n", doDai - 1);
+            printf("  >> Lỗi: Chuỗi quá dài (tối đa %d byte)!\n", doDai - 1);
             continue;
         }
-        if (strlen(s) == 0) {            // strlen(s): do dai chuoi s (khong tinh '\0')
-            printf("  >> Loi: khong duoc de trong!\n");
+        if (strlen(s) == 0) {
+            printf("  >> Lỗi: Không được để trống!\n");
             continue;
         }
         return;
     }
 }
 
-// Chuyen chuoi 'nguon' thanh chu thuong, luu vao 'dich'
-// (dung de tim kiem va sap xep khong phan biet chu hoa / chu thuong)
+// Chuyển các chữ cái tiếng Anh A-Z thành a-z để hỗ trợ tìm kiếm
 void chuyenThuong(const char nguon[], char dich[]) {
     int i = 0;
     while (nguon[i] != '\0') {
         if (nguon[i] >= 'A' && nguon[i] <= 'Z')
-            dich[i] = nguon[i] + 32;     // Trong bang ASCII: 'A'(65) + 32 = 'a'(97)
+            dich[i] = nguon[i] + 32;
         else
             dich[i] = nguon[i];
         i++;
     }
-    dich[i] = '\0';                      // Ket thuc chuoi bang ky tu null '\0'
+    dich[i] = '\0';
 }
 
-// Cho chon 1 trong 3 trang thai, ghi ket qua vao chuoi 'dich'
+// Đếm số ký tự hiển thị thực tế của chuỗi Tiếng Việt UTF-8
+// (Giúp bảng không bị lệch cột khi chữ có dấu chiếm 2-3 byte)
+int demKyTuUTF8(const char s[]) {
+    int dem = 0;
+    for (int i = 0; s[i] != '\0'; i++) {
+        // Trong UTF-8, các byte phụ đi kèm dấu có dạng nhị phân 10xxxxxx (0x80)
+        if ((s[i] & 0xC0) != 0x80)
+            dem++;
+    }
+    return dem;
+}
+
+// In chuỗi tiếng Việt có dấu và bù đúng số khoảng trắng để thẳng cột
+void inCotUTF8(const char s[], int doRongCot) {
+    printf("%s", s);
+    int soKhoangTrang = doRongCot - demKyTuUTF8(s);
+    for (int i = 0; i < soKhoangTrang; i++)
+        printf(" ");
+}
+
+// Cho chọn 1 trong 3 trạng thái, ghi kết quả vào chuỗi 'dich'
 void chonTrangThai(char dich[]) {
     printf("   1. %s\n   2. %s\n   3. %s\n", TT_SAN_SANG, TT_DANG_DUNG, TT_BAO_TRI);
-    int c = nhapSoNguyen("   Chon trang thai (1-3): ", 1, 3);
+    int c = nhapSoNguyen("   Chọn trạng thái (1-3): ", 1, 3);
     if (c == 1)
-        strcpy(dich, TT_SAN_SANG);       // strcpy(dich, nguon): chep chuoi nguon vao dich
+        strcpy(dich, TT_SAN_SANG);
     else if (c == 2)
         strcpy(dich, TT_DANG_DUNG);
     else
         strcpy(dich, TT_BAO_TRI);
 }
 
-// In 1 duong ke ngang gom 'doDai' dau gach
+// Cho chọn nhanh 1 trong 6 chất liệu đất Tử Sa phổ biến
+void chonChatLieu(char dich[]) {
+    printf("   Chọn chất liệu đất Tử Sa:\n");
+    printf("   1. Tử Nê          2. Chu Nê         3. Đoàn Nê\n");
+    printf("   4. Đại Hồng Pao   5. Hắc Nê         6. Lục Nê\n");
+    printf("   7. Tự nhập chất liệu khác\n");
+    int c = nhapSoNguyen("   Lựa chọn của bạn (1-7): ", 1, 7);
+    if (c == 1) strcpy(dich, "Tử Nê");
+    else if (c == 2) strcpy(dich, "Chu Nê");
+    else if (c == 3) strcpy(dich, "Đoàn Nê");
+    else if (c == 4) strcpy(dich, "Đại Hồng Pao");
+    else if (c == 5) strcpy(dich, "Hắc Nê");
+    else if (c == 6) strcpy(dich, "Lục Nê");
+    else nhapChuoi("   Nhập tên chất liệu: ", dich, 40);
+}
+
+// In 1 đường kẻ ngang gồm 'doDai' dấu gạch
 void inDuongKe(int doDai) {
     for (int i = 0; i < doDai; i++)
         printf("-");
     printf("\n");
 }
 
-// In dong tieu de cua bang (%-Ns: can le trai, N la do rong cot)
+// In dòng tiêu đề của bảng (gọn gàng trong 78 ký tự)
 void inTieuDe() {
     inDuongKe(DO_RONG);
-    printf("%-6s %-24s %-12s %-13s %-14s %-11s %-8s\n",
-           "ID", "TEN DANG AM", "CHAT LIEU", "DUNG TICH(ml)", "GIA (VND)", "TRANG THAI", "SO LAN");
+    printf("%-6s ", "ID");
+    inCotUTF8("TÊN DÁNG ẤM", 15);
+    inCotUTF8("CHẤT LIỆU", 15);
+    inCotUTF8("D.TÍCH(ml)", 11);
+    inCotUTF8("GIÁ (VNĐ)", 13);
+    inCotUTF8("TRẠNG THÁI", 12);
+    printf("%-6s\n", "SỐ LẦN");
     inDuongKe(DO_RONG);
 }
 
-// In 1 dong du lieu cua 1 chiec am
+// In 1 dòng dữ liệu của 1 chiếc ấm
 void inMotAm(TeaPot a) {
-    printf("%-6d %-24s %-12s %-13d %-14.0f %-11s %-8d\n",
-           a.id, a.name, a.material, a.capacity, a.price, a.status, a.usageCount);
+    printf("%-6d ", a.id);
+    inCotUTF8(a.name, 15);
+    inCotUTF8(a.material, 15);
+    printf("%-11d %-13.0f ", a.capacity, a.price);
+    inCotUTF8(a.status, 12);
+    printf("%-6d\n", a.usageCount);
 }
 
-// In toan bo danh sach am tra
+// In toàn bộ danh sách ấm trà
 void inDanhSach(TeaPot arr[], int n) {
     if (n == 0) {
-        printf("\n>> Phong tra chua co chiec am nao!\n");
+        printf("\n>> Phòng trà chưa có chiếc ấm nào!\n");
         return;
     }
-    printf("\n===== DANH SACH AM TRA TU SA =====\n");
+    printf("\n==================== DANH SÁCH ẤM TRÀ TỬ SA ====================\n");
     inTieuDe();
     for (int i = 0; i < n; i++)
         inMotAm(arr[i]);
     inDuongKe(DO_RONG);
-    printf("Tong cong: %d am\n", n);
+    printf("Tổng cộng: %d ấm trà\n", n);
 }
 
-// In cac am co trang thai 'trangThai'. Tra ve so am da in.
+// In các ấm có trạng thái 'trangThai'. Trả về số ấm đã in.
 int inAmTheoTrangThai(TeaPot arr[], int n, const char trangThai[]) {
     int dem = 0;
     for (int i = 0; i < n; i++) {
-        // strcmp(a, b) tra ve 0 neu hai chuoi GIONG HET nhau
         if (strcmp(arr[i].status, trangThai) == 0) {
             if (dem == 0)
                 inTieuDe();
@@ -194,29 +239,29 @@ int inAmTheoTrangThai(TeaPot arr[], int n, const char trangThai[]) {
     return dem;
 }
 
-/* ============ PHAN 2: DOC/GHI FILE, KHOI TAO & QUAN LY (THEM / SUA / XOA) ============ */
+/* ============ PHẦN 2: ĐỌC/GHI FILE, KHỞI TẠO & QUẢN LÝ (THÊM / SỬA / XÓA) ============ */
 
-// Ghi toan bo danh sach am va doanh thu ra file nhi phan "phongtra.dat"
+// Ghi toàn bộ danh sách ấm và doanh thu ra file nhị phân
 void luuFile(TeaPot arr[], int n, double doanhThu, int soLuotThue) {
-    FILE *f = fopen(TEN_FILE, "wb");     // "wb": write binary (ghi nhi phan)
+    FILE *f = fopen(TEN_FILE, "wb");
     if (f == NULL) {
-        printf(">> Loi: Khong the mo file %s de ghi!\n", TEN_FILE);
+        printf(">> Lỗi: Không thể mở file %s để ghi!\n", TEN_FILE);
         return;
     }
-    fwrite(&n, sizeof(int), 1, f);               // Ghi so luong am n
-    fwrite(&doanhThu, sizeof(double), 1, f);     // Ghi tong doanh thu
-    fwrite(&soLuotThue, sizeof(int), 1, f);      // Ghi tong so luot thue
+    fwrite(&n, sizeof(int), 1, f);
+    fwrite(&doanhThu, sizeof(double), 1, f);
+    fwrite(&soLuotThue, sizeof(int), 1, f);
     if (n > 0) {
-        fwrite(arr, sizeof(TeaPot), n, f);       // Ghi nguyen mang n chiec am
+        fwrite(arr, sizeof(TeaPot), n, f);
     }
     fclose(f);
 }
 
-// Doc du lieu tu file nhi phan len mang. Tra ve 1 neu doc thanh cong, 0 neu chua co file
+// Đọc dữ liệu từ file nhị phân lên mảng
 int docFile(TeaPot arr[], int &n, double &doanhThu, int &soLuotThue) {
-    FILE *f = fopen(TEN_FILE, "rb");     // "rb": read binary (doc nhi phan)
+    FILE *f = fopen(TEN_FILE, "rb");
     if (f == NULL) {
-        return 0;                        // Chua co file (lan chay dau tien)
+        return 0;
     }
     if (fread(&n, sizeof(int), 1, f) != 1 || n < 0 || n > MAX) {
         fclose(f);
@@ -232,7 +277,7 @@ int docFile(TeaPot arr[], int &n, double &doanhThu, int &soLuotThue) {
     return 1;
 }
 
-// Them 1 am co san thong tin vao mang (dung tao du lieu mau)
+// Thêm 1 ấm có sẵn thông tin vào mảng
 void themAmMau(TeaPot arr[], int &n, int id, const char ten[], const char chatLieu[],
                int dungTich, double gia, const char trangThai[], int soLan) {
     if (n >= MAX)
@@ -247,19 +292,26 @@ void themAmMau(TeaPot arr[], int &n, int id, const char ten[], const char chatLi
     n++;
 }
 
-// Nap san 8 chiec am mau de chay la co du lieu thu
+// Nạp sẵn 15 dáng ấm Tử Sa kinh điển với GIÁ THỊ TRƯỜNG THỰC TẾ (1.5 triệu - 12.5 triệu VNĐ)
 void khoiTaoDuLieu(TeaPot arr[], int &n) {
-    themAmMau(arr, n, 1001, "Tay Thi",     "Tu Ne",   150, 350000, TT_SAN_SANG,  4);
-    themAmMau(arr, n, 1002, "Thach Bieu",  "Chu Ne",  220, 450000, TT_DANG_DUNG, 7);
-    themAmMau(arr, n, 1003, "Phuc Dang",   "Doan Ne", 180, 520000, TT_SAN_SANG,  3);
-    themAmMau(arr, n, 1004, "Ban Nguyet",  "Tu Ne",   120, 300000, TT_BAO_TRI,  10);
-    themAmMau(arr, n, 1005, "Duong Phien", "Chu Ne",  250, 480000, TT_SAN_SANG,  8);
-    themAmMau(arr, n, 1006, "Long Dan",    "Doan Ne", 300, 650000, TT_SAN_SANG,  2);
-    themAmMau(arr, n, 1007, "Cung Xuan",   "Tu Ne",   160, 380000, TT_SAN_SANG,  5);
-    themAmMau(arr, n, 1008, "Bao Chau",    "Chu Ne",  360, 550000, TT_SAN_SANG,  6);
+    themAmMau(arr, n, 1001, "Tây Thi",     "Tử Nê",        150,  1800000, TT_SAN_SANG,  4);
+    themAmMau(arr, n, 1002, "Thạch Biều",  "Chu Nê",       220,  3500000, TT_DANG_DUNG, 7);
+    themAmMau(arr, n, 1003, "Phúc Đăng",   "Đoàn Nê",      180,  2200000, TT_SAN_SANG,  3);
+    themAmMau(arr, n, 1004, "Bán Nguyệt",  "Tử Nê",        120,  1500000, TT_BAO_TRI,  10);
+    themAmMau(arr, n, 1005, "Dương Tiễn",  "Chu Nê",       250,  4800000, TT_SAN_SANG,  8);
+    themAmMau(arr, n, 1006, "Long Đán",    "Đoàn Nê",      300,  5500000, TT_SAN_SANG,  2);
+    themAmMau(arr, n, 1007, "Cung Xuân",   "Tử Nê",        160,  8500000, TT_SAN_SANG,  5);
+    themAmMau(arr, n, 1008, "Báo Xuân",    "Đại Hồng Pao", 360, 12500000, TT_SAN_SANG,  6);
+    themAmMau(arr, n, 1009, "Đức Chung",   "Tử Nê",        200,  3200000, TT_SAN_SANG,  9);
+    themAmMau(arr, n, 1010, "Thủy Bình",   "Chu Nê",       140,  2600000, TT_SAN_SANG,  5);
+    themAmMau(arr, n, 1011, "Phỏng Cổ",    "Hắc Nê",       240,  4200000, TT_DANG_DUNG, 3);
+    themAmMau(arr, n, 1012, "Trúc Đoạn",   "Lục Nê",       210,  3900000, TT_SAN_SANG,  4);
+    themAmMau(arr, n, 1013, "Tỉnh Lan",    "Đoàn Nê",      280,  5100000, TT_SAN_SANG,  1);
+    themAmMau(arr, n, 1014, "Tần Quyền",   "Tử Nê",        320,  6400000, TT_SAN_SANG,  7);
+    themAmMau(arr, n, 1015, "Hợp Hoan",    "Đại Hồng Pao", 190,  9800000, TT_SAN_SANG,  2);
 }
 
-// Tim am theo ma. Tra ve vi tri trong mang, khong thay thi tra ve -1
+// Tìm ấm theo mã. Trả về vị trí trong mảng, không thấy thì trả về -1
 int timTheoId(TeaPot arr[], int n, int id) {
     for (int i = 0; i < n; i++) {
         if (arr[i].id == id)
@@ -268,16 +320,16 @@ int timTheoId(TeaPot arr[], int n, int id) {
     return -1;
 }
 
-// Hoi nguoi dung ma am, tra ve vi tri trong mang (-1 neu khong co)
+// Hỏi người dùng mã ấm, trả về vị trí trong mảng (-1 nếu không có)
 int nhapVaTimId(TeaPot arr[], int n) {
-    int id = nhapSoNguyen("Nhap ma am: ", 1, 999999);
+    int id = nhapSoNguyen("Nhập mã ấm: ", 1, 999999);
     int vt = timTheoId(arr, n, id);
     if (vt == -1)
-        printf(">> Khong tim thay am co ma %d!\n", id);
+        printf(">> Không tìm thấy ấm có mã %d!\n", id);
     return vt;
 }
 
-// Ma moi = ma lon nhat hien co + 1 (danh sach rong thi bat dau tu 1001)
+// Mã mới = mã lớn nhất hiện có + 1
 int taoIdMoi(TeaPot arr[], int n) {
     if (n == 0)
         return 1001;
@@ -289,32 +341,32 @@ int taoIdMoi(TeaPot arr[], int n) {
     return maxId + 1;
 }
 
-// Chuc nang 2: Them am moi
+// Chức năng 2: Thêm ấm mới
 void themAm(TeaPot arr[], int &n) {
-    printf("\n===== THEM AM MOI =====\n");
+    printf("\n===== THÊM ẤM MỚI =====\n");
     if (n >= MAX) {
-        printf(">> Phong tra da day (%d am), khong the them nua!\n", MAX);
+        printf(">> Phòng trà đã đầy (%d ấm), không thể thêm nữa!\n", MAX);
         return;
     }
     TeaPot a;
     a.id = taoIdMoi(arr, n);
-    printf("Ma am moi (tu dong tao): %d\n", a.id);
-    nhapChuoi("Nhap ten dang am: ", a.name, 30);
-    nhapChuoi("Nhap chat lieu dat (Tu Ne / Chu Ne / Doan Ne...): ", a.material, 25);
-    a.capacity = nhapSoNguyen("Nhap dung tich (ml, tu 50 den 1000): ", 50, 1000);
-    a.price = nhapSoThuc("Nhap gia dich vu (VND): ", 1000, 100000000);
-    strcpy(a.status, TT_SAN_SANG);       // Am moi luon o trang thai san sang
+    printf("Mã ấm mới (tự động tạo): %d\n", a.id);
+    nhapChuoi("Nhập tên dáng ấm (VD: Tây Thi, Thủy Bình...): ", a.name, 50);
+    chonChatLieu(a.material);
+    a.capacity = nhapSoNguyen("Nhập dung tích (ml, từ 50 đến 1000): ", 50, 1000);
+    a.price = nhapSoThuc("Nhập giá trị ấm (VNĐ, từ 500.000 đến 100.000.000): ", 500000, 100000000);
+    strcpy(a.status, TT_SAN_SANG);
     a.usageCount = 0;
-    arr[n] = a;                          // Gan ca struct vao o cuoi mang
+    arr[n] = a;
     n++;
-    printf(">> Da them thanh cong am \"%s\" (ma %d)!\n", a.name, a.id);
+    printf(">> Đã thêm thành công ấm \"%s\" (mã %d)!\n", a.name, a.id);
 }
 
-// Chuc nang 4: Sua thong tin 1 chiec am
+// Chức năng 4: Sửa thông tin 1 chiếc ấm
 void suaAm(TeaPot arr[], int n) {
-    printf("\n===== SUA THONG TIN AM =====\n");
+    printf("\n===== SỬA THÔNG TIN ẤM =====\n");
     if (n == 0) {
-        printf(">> Phong tra chua co am nao!\n");
+        printf(">> Phòng trà chưa có ấm nào!\n");
         return;
     }
     int vt = nhapVaTimId(arr, n);
@@ -323,62 +375,61 @@ void suaAm(TeaPot arr[], int n) {
 
     int chon;
     do {
-        printf("\nThong tin hien tai:\n");
+        printf("\nThông tin hiện tại:\n");
         inTieuDe();
         inMotAm(arr[vt]);
         inDuongKe(DO_RONG);
-        printf("  1. Ten dang am     2. Chat lieu    3. Dung tich\n");
-        printf("  4. Gia dich vu     5. Trang thai   0. Quay lai\n");
-        chon = nhapSoNguyen("Chon muc can sua: ", 0, 5);
+        printf("  1. Tên dáng ấm     2. Chất liệu    3. Dung tích\n");
+        printf("  4. Giá trị (VNĐ)   5. Trạng thái   0. Quay lại\n");
+        chon = nhapSoNguyen("Chọn mục cần sửa: ", 0, 5);
         switch (chon) {
-            case 1: nhapChuoi("Ten moi: ", arr[vt].name, 30); break;
-            case 2: nhapChuoi("Chat lieu moi: ", arr[vt].material, 25); break;
-            case 3: arr[vt].capacity = nhapSoNguyen("Dung tich moi (ml): ", 50, 1000); break;
-            case 4: arr[vt].price = nhapSoThuc("Gia moi (VND): ", 1000, 100000000); break;
+            case 1: nhapChuoi("Tên mới: ", arr[vt].name, 50); break;
+            case 2: chonChatLieu(arr[vt].material); break;
+            case 3: arr[vt].capacity = nhapSoNguyen("Dung tích mới (ml): ", 50, 1000); break;
+            case 4: arr[vt].price = nhapSoThuc("Giá mới (VNĐ): ", 500000, 100000000); break;
             case 5: chonTrangThai(arr[vt].status); break;
         }
         if (chon != 0)
-            printf(">> Da cap nhat!\n");
+            printf(">> Đã cập nhật!\n");
     } while (chon != 0);
 }
 
-// Chuc nang 5: Xoa am (don cac phan tu phia sau len 1 o)
+// Chức năng 5: Xóa ấm (dồn các phần tử phía sau lên 1 ô)
 void xoaAm(TeaPot arr[], int &n) {
-    printf("\n===== XOA AM =====\n");
+    printf("\n===== XÓA ẤM =====\n");
     if (n == 0) {
-        printf(">> Phong tra chua co am nao!\n");
+        printf(">> Phòng trà chưa có ấm nào!\n");
         return;
     }
     int vt = nhapVaTimId(arr, n);
     if (vt == -1)
         return;
     if (strcmp(arr[vt].status, TT_DANG_DUNG) == 0) {
-        printf(">> Am dang co khach su dung, khong the xoa!\n");
+        printf(">> Ấm đang có khách sử dụng, không thể xóa!\n");
         return;
     }
     inTieuDe();
     inMotAm(arr[vt]);
     inDuongKe(DO_RONG);
-    if (nhapSoNguyen("Ban chac chan xoa? (1: Co, 0: Khong): ", 0, 1) == 0) {
-        printf(">> Da huy thao tac xoa.\n");
+    if (nhapSoNguyen("Bạn chắc chắn muốn xóa? (1: Có, 0: Không): ", 0, 1) == 0) {
+        printf(">> Đã hủy thao tác xóa.\n");
         return;
     }
-    for (int i = vt; i < n - 1; i++)     // Phan tu sau de len phan tu truoc
+    for (int i = vt; i < n - 1; i++)
         arr[i] = arr[i + 1];
-    n--;                                 // Giam so luong thuc te
-    printf(">> Da xoa am thanh cong!\n");
+    n--;
+    printf(">> Đã xóa ấm thành công!\n");
 }
 
-/* ============================ PHAN 3: TIM KIEM ============================ */
+/* ============================ PHẦN 3: TÌM KIẾM ============================ */
 
-// Tim theo ten (theoTen = 1: chi can chua tu khoa, dung strstr)
-// hoac theo chat lieu (theoTen = 0: phai giong het, dung strcmp).
+// Tìm theo tên dáng ấm hoặc chất liệu
 void timTheoChuoi(TeaPot arr[], int n, int theoTen) {
-    char tuKhoa[30], khoaThuong[30], truongThuong[30];
+    char tuKhoa[50], khoaThuong[50], truongThuong[50];
     if (theoTen == 1)
-        nhapChuoi("Nhap tu khoa trong ten am: ", tuKhoa, 30);
+        nhapChuoi("Nhập từ khóa trong tên ấm: ", tuKhoa, 50);
     else
-        nhapChuoi("Nhap chat lieu can tim: ", tuKhoa, 30);
+        chonChatLieu(tuKhoa);
     chuyenThuong(tuKhoa, khoaThuong);
 
     int dem = 0;
@@ -386,7 +437,6 @@ void timTheoChuoi(TeaPot arr[], int n, int theoTen) {
         int khop;
         if (theoTen == 1) {
             chuyenThuong(arr[i].name, truongThuong);
-            // strstr(a, b): tim chuoi b nam ben trong chuoi a
             khop = (strstr(truongThuong, khoaThuong) != NULL);
         } else {
             chuyenThuong(arr[i].material, truongThuong);
@@ -400,23 +450,23 @@ void timTheoChuoi(TeaPot arr[], int n, int theoTen) {
         }
     }
     if (dem == 0)
-        printf(">> Khong tim thay am nao khop voi \"%s\"!\n", tuKhoa);
+        printf(">> Không tìm thấy ấm nào khớp với \"%s\"!\n", tuKhoa);
     else {
         inDuongKe(DO_RONG);
-        printf("Tim thay %d am.\n", dem);
+        printf("Tìm thấy %d ấm.\n", dem);
     }
 }
 
-// Tim va loc am tra theo so nguoi uong (Cong thuc: searchVol = numPeople * 60 + 30)
+// Tìm và lọc ấm trà theo số người uống (Công thức: searchVol = numPeople * 60 + 30)
 void timTheoSoNguoiUong(TeaPot arr[], int n) {
-    int soNguoi = nhapSoNguyen("Nhap so nguoi uong tra (1-20): ", 1, 20);
+    int soNguoi = nhapSoNguyen("Nhập số người uống trà (1-20): ", 1, 20);
     int searchVol = soNguoi * 60 + 30;
 
-    printf("\n---------------- THONG TIN TINH TOAN DUNG TICH ----------------\n");
-    printf(" - So nguoi uong            : %d nguoi\n", soNguoi);
-    printf(" - Dung tich chen tra       : %d x 60 ml = %d ml\n", soNguoi, soNguoi * 60);
-    printf(" - Dung tich tra no trong am: 30 ml\n");
-    printf(" => Dung tich am toi thieu can tim (capacity >= %d ml)\n", searchVol);
+    printf("\n---------------- THÔNG TIN TÍNH TOÁN DUNG TÍCH ----------------\n");
+    printf(" - Số người uống            : %d người\n", soNguoi);
+    printf(" - Dung tích chén trà       : %d x 60 ml = %d ml\n", soNguoi, soNguoi * 60);
+    printf(" - Dung tích trà nở trong ấm: 30 ml\n");
+    printf(" => Dung tích ấm tối thiểu cần tìm (capacity >= %d ml)\n", searchVol);
 
     int dem = 0;
     for (int i = 0; i < n; i++) {
@@ -428,26 +478,26 @@ void timTheoSoNguoiUong(TeaPot arr[], int n) {
         }
     }
     if (dem == 0)
-        printf(">> Khong co am nao co dung tich >= %d ml!\n", searchVol);
+        printf(">> Không có ấm nào có dung tích >= %d ml!\n", searchVol);
     else {
         inDuongKe(DO_RONG);
-        printf("=> Tim thay tong cong %d am tra phu hop.\n", dem);
+        printf("=> Tìm thấy tổng cộng %d ấm trà phù hợp.\n", dem);
     }
 }
 
-// Chuc nang 3: Menu con tim kiem
+// Chức năng 3: Menu con tìm kiếm
 void timKiem(TeaPot arr[], int n) {
-    printf("\n===== TIM KIEM AM =====\n");
+    printf("\n===== TÌM KIẾM ẤM TRÀ =====\n");
     if (n == 0) {
-        printf(">> Phong tra chua co am nao!\n");
+        printf(">> Phòng trà chưa có ấm nào!\n");
         return;
     }
-    printf("  1. Theo ma am\n");
-    printf("  2. Theo ten (go mot phan ten cung duoc)\n");
-    printf("  3. Theo chat lieu\n");
-    printf("  4. Theo trang thai\n");
-    printf("  5. Theo so nguoi uong (tu dong tinh dung tich: so nguoi * 60 + 30)\n");
-    int chon = nhapSoNguyen("Chon cach tim (1-5): ", 1, 5);
+    printf("  1. Theo mã ấm\n");
+    printf("  2. Theo tên dáng ấm\n");
+    printf("  3. Theo chất liệu đất\n");
+    printf("  4. Theo trạng thái\n");
+    printf("  5. Theo số người uống (tự động tính dung tích: số người * 60 + 30)\n");
+    int chon = nhapSoNguyen("Chọn cách tìm (1-5): ", 1, 5);
     if (chon == 1) {
         int vt = nhapVaTimId(arr, n);
         if (vt != -1) {
@@ -460,33 +510,33 @@ void timKiem(TeaPot arr[], int n) {
     } else if (chon == 3) {
         timTheoChuoi(arr, n, 0);
     } else if (chon == 4) {
-        char tt[20];
+        char tt[30];
         chonTrangThai(tt);
         if (inAmTheoTrangThai(arr, n, tt) == 0)
-            printf(">> Khong co am nao o trang thai \"%s\"!\n", tt);
+            printf(">> Không có ấm nào ở trạng thái \"%s\"!\n", tt);
     } else {
         timTheoSoNguoiUong(arr, n);
     }
 }
 
-/* ======================= PHAN 4: SAP XEP (DOI CHO TRUC TIEP) ======================= */
+/* ======================= PHẦN 4: SẮP XẾP (ĐỔI CHỖ TRỰC TIẾP) ======================= */
 
-// Chuc nang 9: Sap xep danh sach theo nhieu tieu chi (Interchange Sort)
+// Chức năng 9: Sắp xếp danh sách theo nhiều tiêu chí (Interchange Sort)
 void sapXep(TeaPot arr[], int n) {
-    printf("\n===== SAP XEP DANH SACH =====\n");
+    printf("\n===== SẮP XẾP DANH SÁCH =====\n");
     if (n < 2) {
-        printf(">> Can it nhat 2 am de sap xep!\n");
+        printf(">> Cần ít nhất 2 ấm để sắp xếp!\n");
         return;
     }
-    printf("  1. Gia tang dan           2. Gia giam dan\n");
-    printf("  3. So lan dung giam dan   4. Ten A -> Z\n");
-    printf("  5. Dung tich tang dan\n");
-    int kieu = nhapSoNguyen("Chon cach sap xep (1-5): ", 1, 5);
+    printf("  1. Giá tăng dần           2. Giá giảm dần\n");
+    printf("  3. Số lần dùng giảm dần   4. Tên A -> Z\n");
+    printf("  5. Dung tích tăng dần\n");
+    int kieu = nhapSoNguyen("Chọn cách sắp xếp (1-5): ", 1, 5);
 
-    char tenI[30], tenJ[30];
+    char tenI[50], tenJ[50];
     for (int i = 0; i < n - 1; i++) {
         for (int j = i + 1; j < n; j++) {
-            int doiCho = 0;              // 1 nghia la arr[i], arr[j] dang sai thu tu
+            int doiCho = 0;
             if (kieu == 1 && arr[j].price < arr[i].price)
                 doiCho = 1;
             else if (kieu == 2 && arr[j].price > arr[i].price)
@@ -494,7 +544,6 @@ void sapXep(TeaPot arr[], int n) {
             else if (kieu == 3 && arr[j].usageCount > arr[i].usageCount)
                 doiCho = 1;
             else if (kieu == 4) {
-                // Chuyen ve chu thuong truoc khi so sanh de "an lac" dung truoc "Tay Thi"
                 chuyenThuong(arr[i].name, tenI);
                 chuyenThuong(arr[j].name, tenJ);
                 if (strcmp(tenJ, tenI) < 0)
@@ -503,49 +552,48 @@ void sapXep(TeaPot arr[], int n) {
             else if (kieu == 5 && arr[j].capacity < arr[i].capacity)
                 doiCho = 1;
 
-            if (doiCho == 1) {           // Hoan doi 2 struct qua bien trung gian
+            if (doiCho == 1) {
                 TeaPot tam = arr[i];
                 arr[i] = arr[j];
                 arr[j] = tam;
             }
         }
     }
-    printf(">> Da sap xep xong!\n");
+    printf(">> Đã sắp xếp xong!\n");
     inDanhSach(arr, n);
 }
 
-/* ============ PHAN 5: NGHIEP VU PHONG TRA (THUE / TRA / BAO TRI) ============ */
+/* ============ PHẦN 5: NGHIỆP VỤ PHÒNG TRÀ (THUÊ / TRẢ / BẢO TRÌ) ============ */
 
-// Hien cac am dang o 'trangThai', cho nhap ma va kiem tra ma do co dung trang thai khong.
+// Hiện các ấm đang ở 'trangThai', cho nhập mã và kiểm tra trạng thái
 int chonAmTheoTrangThai(TeaPot arr[], int n, const char trangThai[]) {
-    printf("Cac am dang \"%s\":\n", trangThai);
+    printf("Các ấm đang \"%s\":\n", trangThai);
     if (inAmTheoTrangThai(arr, n, trangThai) == 0) {
-        printf(">> Hien khong co am nao o trang thai nay!\n");
+        printf(">> Hiện không có ấm nào ở trạng thái này!\n");
         return -1;
     }
     int vt = nhapVaTimId(arr, n);
     if (vt == -1)
         return -1;
     if (strcmp(arr[vt].status, trangThai) != 0) {
-        printf(">> Am nay dang \"%s\", khong phu hop!\n", arr[vt].status);
+        printf(">> Ấm này đang \"%s\", không phù hợp!\n", arr[vt].status);
         return -1;
     }
     return vt;
 }
 
-// Chuc nang 6: Cho thue am (Tich hop tu van dung tich theo so nguoi uong)
+// Chức năng 6: Cho thuê ấm / Phục vụ bàn trà
 void choThueAm(TeaPot arr[], int n, double &doanhThu, int &soLuotThue) {
-    printf("\n===== CHO THUE AM & TU VAN BAN TRA =====\n");
-    int soNguoi = nhapSoNguyen("Nhap so nguoi uong tra (nhap 0 neu xem tat ca am San sang): ", 0, 20);
+    printf("\n===== CHO THUÊ ẤM & TƯ VẤN BÀN TRÀ =====\n");
+    int soNguoi = nhapSoNguyen("Nhập số người uống trà (nhập 0 nếu xem tất cả ấm Sẵn sàng): ", 0, 20);
     int dungTichCan = 0;
 
     if (soNguoi > 0) {
         dungTichCan = soNguoi * 60 + 30;
-        printf("=> Goi y: %d nguoi x 60ml + 30ml tra no = Can am toi thieu %d ml.\n\n",
+        printf("=> Gợi ý: %d người x 60ml + 30ml trà nở = Cần ấm tối thiểu %d ml.\n\n",
                soNguoi, dungTichCan);
     }
 
-    // Loc va in cac am dang SAN SANG va du dung tich
     int dem = 0;
     for (int i = 0; i < n; i++) {
         if (strcmp(arr[i].status, TT_SAN_SANG) == 0 && arr[i].capacity >= dungTichCan) {
@@ -557,7 +605,7 @@ void choThueAm(TeaPot arr[], int n, double &doanhThu, int &soLuotThue) {
     }
 
     if (dem == 0) {
-        printf(">> Khong co am nao SAN SANG dap ung dung tich >= %d ml!\n", dungTichCan);
+        printf(">> Không có ấm nào SẴN SÀNG đáp ứng dung tích >= %d ml!\n", dungTichCan);
         return;
     }
     inDuongKe(DO_RONG);
@@ -566,76 +614,73 @@ void choThueAm(TeaPot arr[], int n, double &doanhThu, int &soLuotThue) {
     if (vt == -1)
         return;
     if (strcmp(arr[vt].status, TT_SAN_SANG) != 0) {
-        printf(">> Am nay dang \"%s\", khong the cho thue!\n", arr[vt].status);
+        printf(">> Ấm này đang \"%s\", không thể cho thuê!\n", arr[vt].status);
         return;
     }
     if (arr[vt].capacity < dungTichCan) {
-        printf(">> Canh bao: Am nay (%d ml) nho hon dung tich goi y (%d ml)!\n",
+        printf(">> Cảnh báo: Ấm này (%d ml) nhỏ hơn dung tích gợi ý (%d ml)!\n",
                arr[vt].capacity, dungTichCan);
-        if (nhapSoNguyen("Khach van muon chon am nay? (1: Co, 0: Huy): ", 0, 1) == 0)
+        if (nhapSoNguyen("Khách vẫn muốn chọn ấm này? (1: Có, 0: Hủy): ", 0, 1) == 0)
             return;
     }
 
-    strcpy(arr[vt].status, TT_DANG_DUNG);    // Doi trang thai
-    arr[vt].usageCount++;                    // Tang so lan su dung
-    doanhThu += arr[vt].price;               // Cong tien vao doanh thu
+    strcpy(arr[vt].status, TT_DANG_DUNG);
+    arr[vt].usageCount++;
+    doanhThu += arr[vt].price;
     soLuotThue++;
 
-    printf("\n--------- HOA DON ---------\n");
-    printf("Am        : %s (ma %d)\n", arr[vt].name, arr[vt].id);
-    printf("Chat lieu : %s - %d ml\n", arr[vt].material, arr[vt].capacity);
-    printf("Thanh tien: %.0f VND\n", arr[vt].price);
-    printf("---------------------------\n");
-    printf(">> Cho thue thanh cong! (Lan dung thu %d)\n", arr[vt].usageCount);
+    printf("\n--------- PHIẾU PHỤC VỤ ---------\n");
+    printf("Ấm        : %s (mã %d)\n", arr[vt].name, arr[vt].id);
+    printf("Chất liệu : %s - %d ml\n", arr[vt].material, arr[vt].capacity);
+    printf("Giá trị   : %.0f VNĐ\n", arr[vt].price);
+    printf("---------------------------------\n");
+    printf(">> Giao ấm thành công! (Lần dùng thứ %d)\n", arr[vt].usageCount);
 }
 
-// Chuc nang 7: Khach tra am
+// Chức năng 7: Khách trả ấm
 void nhanTraAm(TeaPot arr[], int n) {
-    printf("\n===== NHAN TRA AM =====\n");
+    printf("\n===== NHẬN TRẢ ẤM =====\n");
     int vt = chonAmTheoTrangThai(arr, n, TT_DANG_DUNG);
     if (vt == -1)
         return;
-    // Dung du MUC_BAO_TRI lan (10, 20, 30...) thi phai bao tri
     if (arr[vt].usageCount % MUC_BAO_TRI == 0) {
         strcpy(arr[vt].status, TT_BAO_TRI);
-        printf(">> Da nhan lai am. Am da dung %d lan nen chuyen sang BAO TRI.\n",
+        printf(">> Đã nhận lại ấm. Ấm đã dùng %d lần nên chuyển sang BẢO TRÌ (dưỡng ấm).\n",
                arr[vt].usageCount);
     } else {
         strcpy(arr[vt].status, TT_SAN_SANG);
-        printf(">> Da nhan lai am. Am tro ve trang thai SAN SANG.\n");
+        printf(">> Đã nhận lại ấm. Ấm trở về trạng thái SẴN SÀNG.\n");
     }
 }
 
-// Chuc nang 8: Bao tri xong, dua am ve trang thai san sang
+// Chức năng 8: Bảo trì xong, đưa ấm về trạng thái sẵn sàng
 void hoanTatBaoTri(TeaPot arr[], int n) {
-    printf("\n===== HOAN TAT BAO TRI =====\n");
+    printf("\n===== HOÀN TẤT BẢO TRÌ =====\n");
     int vt = chonAmTheoTrangThai(arr, n, TT_BAO_TRI);
     if (vt == -1)
         return;
     strcpy(arr[vt].status, TT_SAN_SANG);
-    printf(">> Am \"%s\" da bao tri xong va san sang phuc vu khach!\n", arr[vt].name);
+    printf(">> Ấm \"%s\" đã dưỡng/bảo trì xong và sẵn sàng phục vụ khách!\n", arr[vt].name);
 }
 
-/* ============================ PHAN 6: THONG KE ============================ */
+/* ============================ PHẦN 6: THỐNG KÊ ============================ */
 
-// Chuc nang 10: Thong ke tong hop
+// Chức năng 10: Thống kê tổng hợp
 void thongKe(TeaPot arr[], int n, double doanhThu, int soLuotThue) {
-    printf("\n===== THONG KE PHONG TRA TU SA =====\n");
+    printf("\n===== THỐNG KÊ PHÒNG TRÀ TỬ SA =====\n");
     if (n == 0) {
-        printf(">> Phong tra chua co am nao de thong ke!\n");
+        printf(">> Phòng trà chưa có ấm nào để thống kê!\n");
         return;
     }
     int demSanSang = 0, demDangDung = 0, demBaoTri = 0;
     int tongLuotDung = 0;
     double tongGia = 0;
-    int iDat = 0, iRe = 0, iNhieu = 0;   // Vi tri am dat nhat, re nhat, dung nhieu nhat
+    int iDat = 0, iRe = 0, iNhieu = 0;
 
-    // 3 chat lieu pho bien (viet thuong de so sanh) va bo dem tuong ung
-    const char dsChatLieu[3][25] = {"tu ne", "chu ne", "doan ne"};
-    const char tenHienThi[3][25] = {"Tu Ne", "Chu Ne", "Doan Ne"};
-    int demCL[3] = {0, 0, 0};
+    // 6 chất liệu đất Tử Sa phổ biến
+    const char dsChatLieu[6][40] = {"Tử Nê", "Chu Nê", "Đoàn Nê", "Đại Hồng Pao", "Hắc Nê", "Lục Nê"};
+    int demCL[6] = {0, 0, 0, 0, 0, 0};
     int demKhac = 0;
-    char matThuong[25];
 
     for (int i = 0; i < n; i++) {
         if (strcmp(arr[i].status, TT_SAN_SANG) == 0)
@@ -654,10 +699,9 @@ void thongKe(TeaPot arr[], int n, double doanhThu, int soLuotThue) {
         if (arr[i].usageCount > arr[iNhieu].usageCount)
             iNhieu = i;
 
-        chuyenThuong(arr[i].material, matThuong);
         int timThay = 0;
-        for (int k = 0; k < 3; k++) {
-            if (strcmp(matThuong, dsChatLieu[k]) == 0) {
+        for (int k = 0; k < 6; k++) {
+            if (strcmp(arr[i].material, dsChatLieu[k]) == 0) {
                 demCL[k]++;
                 timThay = 1;
             }
@@ -666,70 +710,85 @@ void thongKe(TeaPot arr[], int n, double doanhThu, int soLuotThue) {
             demKhac++;
     }
 
-    printf("\n1. Theo trang thai:\n");
-    printf("   - San sang : %d am\n", demSanSang);
-    printf("   - Dang dung: %d am\n", demDangDung);
-    printf("   - Bao tri  : %d am\n", demBaoTri);
+    printf("\n1. Theo trạng thái:\n");
+    printf("   - Sẵn sàng : %d ấm\n", demSanSang);
+    printf("   - Đang dùng: %d ấm\n", demDangDung);
+    printf("   - Bảo trì  : %d ấm\n", demBaoTri);
 
-    printf("\n2. Theo chat lieu:\n");
-    for (int k = 0; k < 3; k++)
-        printf("   - %-8s: %d am\n", tenHienThi[k], demCL[k]);
-    printf("   - %-8s: %d am\n", "Khac", demKhac);
+    printf("\n2. Theo chất liệu đất:\n");
+    for (int k = 0; k < 6; k++) {
+        printf("   - ");
+        inCotUTF8(dsChatLieu[k], 14);
+        printf(": %d ấm\n", demCL[k]);
+    }
+    if (demKhac > 0) {
+        printf("   - ");
+        inCotUTF8("Khác", 14);
+        printf(": %d ấm\n", demKhac);
+    }
 
-    printf("\n3. Ve gia:\n");
-    printf("   - Gia trung binh: %.0f VND\n", tongGia / n);
-    printf("   - Am dat nhat   : %s (%.0f VND)\n", arr[iDat].name, arr[iDat].price);
-    printf("   - Am re nhat    : %s (%.0f VND)\n", arr[iRe].name, arr[iRe].price);
+    printf("\n3. Về giá trị ấm:\n");
+    printf("   - Tổng giá trị kho ấm: %.0f VNĐ\n", tongGia);
+    printf("   - Giá trung bình     : %.0f VNĐ\n", tongGia / n);
+    printf("   - Ấm đắt giá nhất    : %s - %s (%.0f VNĐ)\n", arr[iDat].name, arr[iDat].material, arr[iDat].price);
+    printf("   - Ấm giá mềm nhất    : %s - %s (%.0f VNĐ)\n", arr[iRe].name, arr[iRe].material, arr[iRe].price);
 
-    printf("\n4. Ve su dung:\n");
-    printf("   - Tong so lan da dung (tat ca am): %d\n", tongLuotDung);
-    printf("   - Am duoc dung nhieu nhat        : %s (%d lan)\n",
+    printf("\n4. Về tần suất sử dụng:\n");
+    printf("   - Tổng số lượt đã dùng (tất cả ấm): %d lần\n", tongLuotDung);
+    printf("   - Ấm được khách chuộng nhất       : %s (%d lần)\n",
            arr[iNhieu].name, arr[iNhieu].usageCount);
 
-    printf("\n5. Doanh thu tich luy:\n");
-    printf("   - So luot cho thue: %d\n", soLuotThue);
-    printf("   - Tong doanh thu  : %.0f VND\n", doanhThu);
+    printf("\n5. Doanh thu tích lũy:\n");
+    printf("   - Số lượt giao ấm : %d lượt\n", soLuotThue);
+    printf("   - Tổng giá trị giao dịch: %.0f VNĐ\n", doanhThu);
 }
 
-/* ========================= PHAN 7: MENU VA HAM MAIN ========================= */
+/* ========================= PHẦN 7: MENU VÀ HÀM MAIN ========================= */
 
 void hienMenu() {
-    printf("\n==========================================\n");
-    printf("         QUAN LY PHONG TRA TU SA\n");
-    printf("==========================================\n");
-    printf("  1. Xem danh sach am tra\n");
-    printf("  2. Them am moi\n");
-    printf("  3. Tim kiem am (co loc theo so nguoi uong)\n");
-    printf("  4. Sua thong tin am\n");
-    printf("  5. Xoa am\n");
-    printf("  6. Cho thue am (tu van dung tich)\n");
-    printf("  7. Nhan tra am\n");
-    printf("  8. Hoan tat bao tri\n");
-    printf("  9. Sap xep danh sach\n");
-    printf(" 10. Thong ke va doanh thu\n");
-    printf("  0. Luu & Thoat\n");
-    printf("------------------------------------------\n");
+    printf("\n============================================\n");
+    printf("          QUẢN LÝ PHÒNG TRÀ TỬ SA\n");
+    printf("============================================\n");
+    printf("  1. Xem danh sách ấm trà (15+ dáng ấm)\n");
+    printf("  2. Thêm ấm mới\n");
+    printf("  3. Tìm kiếm ấm (có lọc theo số người uống)\n");
+    printf("  4. Sửa thông tin ấm\n");
+    printf("  5. Xóa ấm\n");
+    printf("  6. Cho thuê ấm (tư vấn dung tích)\n");
+    printf("  7. Nhận trả ấm\n");
+    printf("  8. Hoàn tất bảo trì\n");
+    printf("  9. Sắp xếp danh sách\n");
+    printf(" 10. Thống kê và doanh thu\n");
+    printf(" 11. Khôi phục 15 ấm mẫu mặc định\n");
+    printf("  0. Lưu & Thoát\n");
+    printf("--------------------------------------------\n");
 }
 
 int main() {
-    TeaPot arr[MAX];          // Mang tinh toi da 100 chiec am
-    int n = 0;                // So am thuc te dang co
-    double doanhThu = 0;      // Tong doanh thu
-    int soLuotThue = 0;       // So luot cho thue
+#ifdef _WIN32
+    // Bật chế độ hiển thị và nhập liệu Tiếng Việt UTF-8 trên Windows Console
+    SetConsoleOutputCP(65001);
+    SetConsoleCP(65001);
+#endif
 
-    // Neu doc file thanh cong thi lay du lieu cu, neu chua co file thi nap 8 am mau
+    TeaPot arr[MAX];          // Mảng tĩnh tối đa 100 chiếc ấm
+    int n = 0;                // Số ấm thực tế đang có
+    double doanhThu = 0;      // Tổng doanh thu
+    int soLuotThue = 0;       // Số lượt cho thuê
+
+    // Nếu đọc file thành công thì lấy dữ liệu cũ, nếu chưa có file thì nạp 15 ấm mẫu
     if (docFile(arr, n, doanhThu, soLuotThue) == 1) {
-        printf("Chao mung den voi Phong Tra Tu Sa! (Da tai %d am tu file %s)\n", n, TEN_FILE);
+        printf("Chào mừng đến với Phòng Trà Tử Sa! (Đã tải %d ấm từ file %s)\n", n, TEN_FILE);
     } else {
         khoiTaoDuLieu(arr, n);
         luuFile(arr, n, doanhThu, soLuotThue);
-        printf("Chao mung den voi Phong Tra Tu Sa! (Da khoi tao %d am mau)\n", n);
+        printf("Chào mừng đến với Phòng Trà Tử Sa! (Đã khởi tạo %d ấm mẫu giá thị trường)\n", n);
     }
 
     int chon;
     do {
         hienMenu();
-        chon = nhapSoNguyen("Nhap lua chon cua ban (0-10): ", 0, 10);
+        chon = nhapSoNguyen("Nhập lựa chọn của bạn (0-11): ", 0, 11);
         switch (chon) {
             case 1:
                 inDanhSach(arr, n);
@@ -767,9 +826,19 @@ int main() {
             case 10:
                 thongKe(arr, n, doanhThu, soLuotThue);
                 break;
+            case 11:
+                if (nhapSoNguyen("Bạn muốn đặt lại danh sách về 15 ấm mẫu ban đầu? (1: Có, 0: Hủy): ", 0, 1) == 1) {
+                    n = 0;
+                    doanhThu = 0;
+                    soLuotThue = 0;
+                    khoiTaoDuLieu(arr, n);
+                    luuFile(arr, n, doanhThu, soLuotThue);
+                    printf(">> Đã khôi phục 15 ấm Tử Sa mẫu thành công!\n");
+                }
+                break;
             case 0:
                 luuFile(arr, n, doanhThu, soLuotThue);
-                printf("\nDa luu du lieu vao file %s. Cam on va hen gap lai!\n", TEN_FILE);
+                printf("\nĐã lưu dữ liệu vào file %s. Cảm ơn và hẹn gặp lại!\n", TEN_FILE);
                 break;
         }
     } while (chon != 0);
